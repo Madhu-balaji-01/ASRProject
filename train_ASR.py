@@ -31,7 +31,7 @@ def main(cfg):
     # Allow users to specify other config files
     # python train_ASR.py user_config=config/xx.yaml
     if cfg.user_config is not None:
-        print(f"{to_absolute_path('config')}")
+        # print(f"{to_absolute_path('config')}")
         user_config = OmegaConf.load(to_absolute_path(cfg.user_config))
         cfg = OmegaConf.merge(cfg, user_config)    
     
@@ -49,7 +49,7 @@ def main(cfg):
         dict_file = 'characters_dict'
         cfg.data_processing.label_key = 'words'
     elif cfg.output_mode == 'ph':
-        dict_file = './pytorch_template/phonemics_dict'
+        dict_file = './ASRProject/phonemics_dict'
         cfg.data_processing.label_key = 'phonemics'        
     elif cfg.output_mode == 'word':
         dict_file = 'words_dict'
@@ -105,6 +105,7 @@ def main(cfg):
     start = time.time()
     trainer.fit(model, train_loader, valid_loader)
 #     trainer.test(model, test_loader)
+    torch.save(trainer, './model_CNNLinear.pth')
     trainer.test(model, test_loader, ckpt_path="best")   
     end = time.time()
     print("Total time taken: {} min".format((end-start)/60))
