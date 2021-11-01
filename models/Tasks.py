@@ -134,77 +134,87 @@ class ASR(pl.LightningModule):
       plt.show()
       plt.clf()
       out = self.model.spec_layer(x)
-      outer=(torch.Tensor.cpu(out).detach())
-      plt.figure(figsize=(20,5))
-      b=np.array([]).reshape(0,outer.shape[2])
-      c=np.array([]).reshape(4*outer.shape[2],0)
+      # outer=(torch.Tensor.cpu(out).detach())
+      # print(outer.shape)
+      # plt.figure(figsize=(20,5))
+      # b=np.array([]).reshape(0,outer.shape[2])
+      # c=np.array([]).reshape(4*outer.shape[2],0)
         
-      # Plotting for layer 1
-      i=0
-      j=0
-      while(i<32):
-          img=outer[0][i]
-          b=np.concatenate((img,b),axis=0)
-          j+=1
-          if(j==4):
-              c=np.concatenate((c,b),axis=1)
-              b=np.array([]).reshape(0,outer.shape[2])
-              j=0
+      # # Plotting for layer 1
+      # i=0
+      # j=0
+      # while(i<32):
+      #     img=outer[0][i]
+      #     print(img.shape)
+      #     b=np.concatenate((img,b),axis=0)
+      #     j+=1
+      #     if(j==4):
+      #         c=np.concatenate((c,b),axis=1)
+      #         b=np.array([]).reshape(0,outer.shape[2])
+      #         j=0
               
-          i+=1
-      plt.imshow(c)
+      #     i+=1
+      # plt.imshow(c)
+      # plt.show()
+      # plt.clf()
+      self.logger.experiment.add_image("Spec_layer",out[0],self.current_epoch,dataformats="HW")
+      plt.imshow(torch.Tensor.cpu(out[0]))
       plt.show()
       plt.clf()
-      self.logger.experiment.add_image("Spec_layer",c,self.current_epoch,dataformats="HW")
-      
-      out = self.model.norm_layer(out)
-      outer=(torch.Tensor.cpu(out).detach())
-      plt.figure(figsize=(10,10))
-      b=np.array([]).reshape(0,outer.shape[2])
-      c=np.array([]).reshape(8*outer.shape[2],0)
-      
-      # Plotting for layer2
-      i=0
-      j=0
-      while(i<64):
-          img=outer[0][i]
-          b=np.concatenate((img,b),axis=0)
-          j+=1
-          if(j==8):
-              c=np.concatenate((c,b),axis=1)
-              b=np.array([]).reshape(0,outer.shape[2])
-              j=0   
-          i+=1
 
-      self.logger.experiment.add_image("Norm layer",c,self.current_epoch,dataformats="HW")
-      plt.imshow(c)
+      out = out.transpose(1,2)
+      out = self.model.norm_layer(out)
+      # outer=(torch.Tensor.cpu(out).detach())
+      # plt.figure(figsize=(10,10))
+      # b=np.array([]).reshape(0,outer.shape[2])
+      # c=np.array([]).reshape(8*outer.shape[2],0)
+      
+      # # Plotting for layer2
+      # i=0
+      # j=0
+      # while(i<64):
+      #     img=outer[0][i]
+      #     b=np.concatenate((img,b),axis=0)
+      #     j+=1
+      #     if(j==8):
+      #         c=np.concatenate((c,b),axis=1)
+      #         b=np.array([]).reshape(0,outer.shape[2])
+      #         j=0   
+      #     i+=1
+
+      self.logger.experiment.add_image("Norm layer",out[0],self.current_epoch,dataformats="HW")
+      print('norm out0', out[0].shape)
+      plt.imshow(torch.Tensor.cpu(out[0]))
       plt.show()
       plt.clf()
       
       # print(out.shape)
+      out = out.unsqueeze(1)
       out = self.model.cnn(out)
-      outer=(torch.Tensor.cpu(out).detach())
-      plt.figure(figsize=(20,5))
-      b=np.array([]).reshape(0,outer.shape[2])
-      c=np.array([]).reshape(8*outer.shape[2],0)
+      print(out.shape)
+      print('out [0]', out[0].shape)
+      # outer=(torch.Tensor.cpu(out).detach())
+      # plt.figure(figsize=(20,5))
+      # b=np.array([]).reshape(0,outer.shape[2])
+      # c=np.array([]).reshape(8*outer.shape[2],0)
       
-      # Plotting for layer3
-      j=0
-      i=0
-      while(i<128):
-          img=outer[0][i]
-          b=np.concatenate((img,b),axis=0)
-          j+=1
-          if(j==8):
-              c=np.concatenate((c,b),axis=1)
-              b=np.array([]).reshape(0,outer.shape[2])
-              j=0
+      # # Plotting for layer3
+      # j=0
+      # i=0
+      # while(i<128):
+      #     img=outer[0][i]
+      #     b=np.concatenate((img,b),axis=0)
+      #     j+=1
+      #     if(j==8):
+      #         c=np.concatenate((c,b),axis=1)
+      #         b=np.array([]).reshape(0,outer.shape[2])
+      #         j=0
               
-          i+=1
-      # print(c.shape)
+      #     i+=1
+      # # print(c.shape)
 
-      self.logger.experiment.add_image("CNN layer",c,self.current_epoch,dataformats="HW")
-      plt.imshow(c)
+      self.logger.experiment.add_image("CNN layer",out[0][0],self.current_epoch,dataformats="HW")
+      plt.imshow(torch.Tensor.detach(out[0][0]).cpu().numpy())
       plt.show()
 
     
