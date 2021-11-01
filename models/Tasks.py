@@ -27,7 +27,7 @@ class ASR(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x = batch['waveforms']
         if batch_idx == 0:
-          self.reference_img = x[0]
+          self.reference_img = x[0].unsqueeze(0)
         output = self.model(x)
         pred = output["prediction"]
         pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax
@@ -141,23 +141,23 @@ class ASR(pl.LightningModule):
 
     def showActivations(self,x):
       # logging reference image 
-      self.logger.experiment.add_image("input",torch.Tensor.cpu(x[0][0]),self.current_epoch,dataformats="HW")
+      self.logger.experiment.add_image("input",torch.Tensor.cpu(x[0][0]),self.current_epoch)
       # logging layer 1 activations  
       out = self.model.spec_layer(x)
       c=self.makegrid(out,4)
-      self.logger.experiment.add_image("Spec_layer",c,self.current_epoch,dataformats="HW")
+      self.logger.experiment.add_image("Spec_layer",c,self.current_epoch)
       # logging layer 2 activations  
       out = self.model.norm_layer(out)
       c=self.makegrid(out,8)
-      self.logger.experiment.add_image("Norm_layer",c,self.current_epoch,dataformats="HW")
+      self.logger.experiment.add_image("Norm_layer",c,self.current_epoch)
       # logging layer 3 activations  
       out = self.model.cnn(out)
       c=self.makegrid(out,8)
-      self.logger.experiment.add_image("CNN_layer",c,self.current_epoch,dataformats="HW")
+      self.logger.experiment.add_image("CNN_layer",c,self.current_epoch)
       # logging layer 4 activations  
       out = self.model.fc(out)
       c=self.makegrid(out,8)
-      self.logger.experiment.add_image("FC_layer",c,self.current_epoch,dataformats="HW")
+      self.logger.experiment.add_image("FC_layer",c,self.current_epoch)
     
     def training_epoch_end(self,outputs):
       self.showActivations(self.reference_img)

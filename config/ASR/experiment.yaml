@@ -11,13 +11,13 @@ dataset:
     train:
         root: '/workspace/public_data/SpeechDataset'
         split: 'train'
-        download: True
+        download: False
         
         
     test:
         root: '/workspace/public_data/SpeechDataset'
         split: 'test'
-        download: True
+        download: False
         
 dataloader:
     train:
