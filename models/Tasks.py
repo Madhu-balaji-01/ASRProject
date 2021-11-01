@@ -10,6 +10,7 @@ from utils import extract_notes_wo_velocity, transcription_accuracy
 from utils.text_processing import GreedyDecoder
 import fastwer
 import contextlib
+import numpy as np
 
 # from nnAudio.Spectrogram import MelSpectrogram
 import pandas as pd
@@ -26,8 +27,10 @@ class ASR(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x = batch['waveforms']
+        # print('x shape:', x.shape)
         if batch_idx == 0:
           self.reference_img = x[0].unsqueeze(0)
+          print('ref shape', self.reference_img.shape)
         output = self.model(x)
         pred = output["prediction"]
         pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax
@@ -121,43 +124,89 @@ class ASR(pl.LightningModule):
         return [optimizer]
     
     # Vizualizing activations
-    def makegrid(self, output,numrows):
-      outer=(torch.Tensor.cpu(output).detach())
+
+    def showActivations(self,x):
+      print(x.shape)
+      plt.imshow(torch.Tensor.cpu(x))
+
+      # Logging the input image
+      self.logger.experiment.add_image("input",torch.Tensor.cpu(x),self.current_epoch,dataformats="HW")
+      plt.show()
+      plt.clf()
+      out = self.model.spec_layer(x)
+      outer=(torch.Tensor.cpu(out).detach())
       plt.figure(figsize=(20,5))
       b=np.array([]).reshape(0,outer.shape[2])
-      c=np.array([]).reshape(numrows*outer.shape[2],0)
+      c=np.array([]).reshape(4*outer.shape[2],0)
+        
+      # Plotting for layer 1
       i=0
       j=0
-      while(i < outer.shape[1]):
+      while(i<32):
           img=outer[0][i]
           b=np.concatenate((img,b),axis=0)
           j+=1
-          if(j==numrows):
+          if(j==4):
               c=np.concatenate((c,b),axis=1)
               b=np.array([]).reshape(0,outer.shape[2])
               j=0
+              
           i+=1
-      return c
-
-    def showActivations(self,x):
-      # logging reference image 
-      self.logger.experiment.add_image("input",torch.Tensor.cpu(x[0][0]),self.current_epoch)
-      # logging layer 1 activations  
-      out = self.model.spec_layer(x)
-      c=self.makegrid(out,4)
-      self.logger.experiment.add_image("Spec_layer",c,self.current_epoch)
-      # logging layer 2 activations  
+      plt.imshow(c)
+      plt.show()
+      plt.clf()
+      self.logger.experiment.add_image("Spec_layer",c,self.current_epoch,dataformats="HW")
+      
       out = self.model.norm_layer(out)
-      c=self.makegrid(out,8)
-      self.logger.experiment.add_image("Norm_layer",c,self.current_epoch)
-      # logging layer 3 activations  
+      outer=(torch.Tensor.cpu(out).detach())
+      plt.figure(figsize=(10,10))
+      b=np.array([]).reshape(0,outer.shape[2])
+      c=np.array([]).reshape(8*outer.shape[2],0)
+      
+      # Plotting for layer2
+      i=0
+      j=0
+      while(i<64):
+          img=outer[0][i]
+          b=np.concatenate((img,b),axis=0)
+          j+=1
+          if(j==8):
+              c=np.concatenate((c,b),axis=1)
+              b=np.array([]).reshape(0,outer.shape[2])
+              j=0   
+          i+=1
+
+      self.logger.experiment.add_image("Norm layer",c,self.current_epoch,dataformats="HW")
+      plt.imshow(c)
+      plt.show()
+      plt.clf()
+      
+      # print(out.shape)
       out = self.model.cnn(out)
-      c=self.makegrid(out,8)
-      self.logger.experiment.add_image("CNN_layer",c,self.current_epoch)
-      # logging layer 4 activations  
-      out = self.model.fc(out)
-      c=self.makegrid(out,8)
-      self.logger.experiment.add_image("FC_layer",c,self.current_epoch)
+      outer=(torch.Tensor.cpu(out).detach())
+      plt.figure(figsize=(20,5))
+      b=np.array([]).reshape(0,outer.shape[2])
+      c=np.array([]).reshape(8*outer.shape[2],0)
+      
+      # Plotting for layer3
+      j=0
+      i=0
+      while(i<128):
+          img=outer[0][i]
+          b=np.concatenate((img,b),axis=0)
+          j+=1
+          if(j==8):
+              c=np.concatenate((c,b),axis=1)
+              b=np.array([]).reshape(0,outer.shape[2])
+              j=0
+              
+          i+=1
+      # print(c.shape)
+
+      self.logger.experiment.add_image("CNN layer",c,self.current_epoch,dataformats="HW")
+      plt.imshow(c)
+      plt.show()
+
     
     def training_epoch_end(self,outputs):
       self.showActivations(self.reference_img)
