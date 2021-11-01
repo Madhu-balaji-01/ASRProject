@@ -4,7 +4,7 @@ gpus: 1
 hop_length: 160
 sampling_rate: 16000
 learning_rate: 1e-5
-epochs: 5
+epochs: 2
 output_mode: 'ph'
 
 dataset:
@@ -45,4 +45,4 @@ pl:
     
 defaults:    
     - spec_layer: Mel
-    - model: simpleLSTM
+    - model: CNN_LINEAR

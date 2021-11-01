@@ -95,7 +95,7 @@ def main(cfg):
                                           save_top_k=3,
                                           mode="min")
     lr_monitor = LearningRateMonitor(logging_interval='step')
-    logger = TensorBoardLogger(save_dir=".", version=1, name=f'ASR-{cfg.spec_layer.type}-{cfg.model.type}')
+    logger = TensorBoardLogger(save_dir="./ASRProject/", version=1, name=f'ASR-{cfg.spec_layer.type}-{cfg.model.type}')
     trainer = pl.Trainer(gpus=cfg.gpus,
                          max_epochs=cfg.epochs,
                          callbacks=[checkpoint_callback, lr_monitor],
@@ -105,7 +105,7 @@ def main(cfg):
     start = time.time()
     trainer.fit(model, train_loader, valid_loader)
 #     trainer.test(model, test_loader)
-    torch.save(trainer, './model_CNNLinear.pth')
+   
     trainer.test(model, test_loader, ckpt_path="best")   
     end = time.time()
     print("Total time taken: {} min".format((end-start)/60))
