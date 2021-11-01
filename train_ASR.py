@@ -95,7 +95,7 @@ def main(cfg):
                                           save_top_k=3,
                                           mode="min")
     lr_monitor = LearningRateMonitor(logging_interval='step')
-    logger = TensorBoardLogger(save_dir="./ASRProject/", version=1, name=f'ASR-{cfg.spec_layer.type}-{cfg.model.type}')
+    logger = TensorBoardLogger(save_dir=".", name=f'{cfg.model.type}')
     trainer = pl.Trainer(gpus=cfg.gpus,
                          max_epochs=cfg.epochs,
                          callbacks=[checkpoint_callback, lr_monitor],

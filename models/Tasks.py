@@ -26,6 +26,8 @@ class ASR(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x = batch['waveforms']
+        if batch_idx == 0:
+          self.reference_img = x[0]
         output = self.model(x)
         pred = output["prediction"]
         pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax
@@ -92,7 +94,6 @@ class ASR(pl.LightningModule):
 
             self.log_dict(valid_metrics)     
 
-            
     def _log_text(self, texts, tag, max_sentences=4):
         text_list=[]
         for idx in range(min(len(texts),max_sentences)): # visualize 4 samples or the batch whichever is smallest
@@ -109,7 +110,6 @@ class ASR(pl.LightningModule):
 
 
     def configure_optimizers(self):
-
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
 #         scheduler = TriStageLRSchedule(optimizer,
 #                                        [1e-8, self.lr, 1e-8],
@@ -119,121 +119,46 @@ class ASR(pl.LightningModule):
 
 #         return [optimizer], [{"scheduler":scheduler, "interval": "step"}]
         return [optimizer]
+    
+    # Vizualizing activations
+    def makegrid(self, output,numrows):
+      outer=(torch.Tensor.cpu(output).detach())
+      plt.figure(figsize=(20,5))
+      b=np.array([]).reshape(0,outer.shape[2])
+      c=np.array([]).reshape(numrows*outer.shape[2],0)
+      i=0
+      j=0
+      while(i < outer.shape[1]):
+          img=outer[0][i]
+          b=np.concatenate((img,b),axis=0)
+          j+=1
+          if(j==numrows):
+              c=np.concatenate((c,b),axis=1)
+              b=np.array([]).reshape(0,outer.shape[2])
+              j=0
+          i+=1
+      return c
 
+    def showActivations(self,x):
+      # logging reference image 
+      self.logger.experiment.add_image("input",torch.Tensor.cpu(x[0][0]),self.current_epoch,dataformats="HW")
+      # logging layer 1 activations  
+      out = self.model.spec_layer(x)
+      c=self.makegrid(out,4)
+      self.logger.experiment.add_image("Spec_layer",c,self.current_epoch,dataformats="HW")
+      # logging layer 2 activations  
+      out = self.model.norm_layer(out)
+      c=self.makegrid(out,8)
+      self.logger.experiment.add_image("Norm_layer",c,self.current_epoch,dataformats="HW")
+      # logging layer 3 activations  
+      out = self.model.cnn(out)
+      c=self.makegrid(out,8)
+      self.logger.experiment.add_image("CNN_layer",c,self.current_epoch,dataformats="HW")
+      # logging layer 4 activations  
+      out = self.model.fc(out)
+      c=self.makegrid(out,8)
+      self.logger.experiment.add_image("FC_layer",c,self.current_epoch,dataformats="HW")
+    
+    def training_epoch_end(self,outputs):
+      self.showActivations(self.reference_img)
 
-class AMT(pl.LightningModule):
-    def __init__(self,
-                 model,
-                 lr,
-                 sr,
-                 hop_length,
-                 min_midi
-                ):
-        super().__init__()
-
-        self.model = model
-        self.lr = lr
-        self.sr = sr
-        self.hop_length = hop_length
-        self.min_midi = min_midi
-
-    def training_step(self, batch, batch_idx):
-        x = batch['audio']
-        y = batch['frame']    
-        output = self.model(x)
-        pred = torch.sigmoid(output["prediction"])
-        
-        # removing extra time step occurs in either label or prediction
-        max_timesteps = min(pred.size(1), y.size(1))
-        y = y[:, :max_timesteps]
-        pred = pred[:, :max_timesteps]
-        
-        l1_loss = torch.norm(pred, 1, 2).mean()
-        bce_loss = F.binary_cross_entropy(pred, y)
-        loss = bce_loss#+l1_loss
-        self.log("Train/BCE", bce_loss)        
-        
-        return loss
-
-    def validation_step(self, batch, batch_idx):
-        x = batch['audio']
-        y = batch['frame']        
-        with torch.no_grad():
-            output = self.model(x)
-            pred = torch.sigmoid(output["prediction"])
-            spec = output["spectrogram"]
-            
-            # removing extra time step occurs in either label or prediction
-            max_timesteps = min(pred.size(1), y.size(1))
-            y = y[:, :max_timesteps]
-            pred = pred[:, :max_timesteps]    
-            l1_loss = torch.norm(pred, 1, 2).mean()
-            bce_loss = F.binary_cross_entropy(pred, y)
-            loss = bce_loss#+l1_loss
-            metrics = {"Valid/loss": loss,
-                       "Valid/BCE": bce_loss}
-#                        "Valid/L1": l1_loss}
-
-            y = y.cpu().detach()
-            pred = pred.cpu().detach()
-            pred_roll = torch.zeros_like(y)
-            
-            pred_dict = {pred}
-            for idx, (i, j) in enumerate(zip(pred, y)):
-                pred_roll[idx] = transcription_accuracy(i, i,
-                                                        j, j,
-                                                        metrics, self.hop_length, self.sr, self.min_midi)
-
-            if batch_idx==0:
-                self.log_images(pred, f'Valid/posteriorgram')
-                self.log_images(pred_roll, f'Valid/pred_roll')                
-                if self.current_epoch==0:
-                    self.log_images(spec, f'Valid/spectrogram')                    
-                    self.log_images(y, f'Valid/ground_truth_roll')                    
-
-            self.log_dict(metrics)
-
-
-    def test_step(self, batch, batch_idx):
-        print(batch_idx)
-        x = batch['audio']
-        y = batch['frame']
-        metrics = {}
-
-
-        with torch.no_grad():
-            pred = self(x)
-            max_timesteps = pred.size(1)
-            y = y[:,:max_timesteps]
-            loss = F.binary_cross_entropy(pred, y)
-            metrics["test_loss/frame"] = loss.item()
-
-            pred = pred.cpu().detach()[0]
-            y = y.cpu().detach()[0]
-
-            self.transcription_accuracy(pred, y, metrics)
-        self.log_dict(metrics)            
-
-
-    def log_images(self, tensor, key, num_display=4):
-        for idx, spec in enumerate(tensor.squeeze(1)):
-            if num_display < idx:
-                break
-            
-            fig, ax = plt.subplots(1,1)
-            ax.imshow(spec.cpu().detach().t(), aspect='auto', origin='lower')    
-            self.logger.experiment.add_figure(f"{key}/{idx}", fig, global_step=self.current_epoch)
-
-
-
-    def configure_optimizers(self):
-
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-#         scheduler = TriStageLRSchedule(optimizer,
-#                                        [1e-8, self.lr, 1e-8],
-#                                        [0.2,0.6,0.2],
-#                                        max_update=len(self.train_dataloader.dataloader)*self.trainer.max_epochs)   
-#         scheduler = MultiStepLR(optimizer, [1,3,5,7,9], gamma=0.1, last_epoch=-1, verbose=False)
-
-#         return [optimizer], [{"scheduler":scheduler, "interval": "step"}]
-        return [optimizer]
