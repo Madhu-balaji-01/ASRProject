@@ -1,0 +1,61 @@
+spec_layer:
+  type: MelSpectrogram
+  args:
+    sr: ${sampling_rate}
+    n_fft: 400
+    n_mels: 80
+    hop_length: ${hop_length}
+    window: hann
+    center: true
+    pad_mode: reflect
+    power: 2.0
+    htk: false
+    fmin: 0.0
+    fmax: null
+    norm: 1
+    trainable_mel: false
+    trainable_STFT: false
+    verbose: true
+model:
+  type: CNN_LINEAR
+  args:
+    norm_mode: imagewise
+    hidden_dim2: 256
+    hidden_dim3: 128
+    input_dim: 0
+    output_dim: 0
+user_config: null
+gpus: 1
+hop_length: 160
+sampling_rate: 16000
+learning_rate: 1.0e-05
+epochs: 2
+output_mode: ph
+dataset:
+  train:
+    root: /workspace/public_data/SpeechDataset
+    split: train
+    download: true
+  test:
+    root: /workspace/public_data/SpeechDataset
+    split: test
+    download: true
+dataloader:
+  train:
+    batch_size: 16
+    num_workers: 8
+    pin_memory: true
+  valid:
+    batch_size: 32
+    num_workers: 8
+    pin_memory: true
+  test:
+    batch_size: 1
+    num_workers: 8
+    pin_memory: true
+data_processing:
+  input_key: waveform
+  label_key: 0
+  downsample_factor: ${hop_length}
+pl:
+  lr: ${learning_rate}
