@@ -30,7 +30,7 @@ class ASR(pl.LightningModule):
         # print('x shape:', x.shape)
         if batch_idx == 0:
           self.reference_img = x[0].unsqueeze(0)
-          print('ref shape', self.reference_img.shape)
+          print('orig shape', x.shape)
         output = self.model(x)
         pred = output["prediction"]
         pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax
@@ -157,8 +157,8 @@ class ASR(pl.LightningModule):
       # plt.imshow(c)
       # plt.show()
       # plt.clf()
-      self.logger.experiment.add_image("Spec_layer",out[0],self.current_epoch,dataformats="HW")
-      plt.imshow(torch.Tensor.cpu(out[0]))
+      self.logger.experiment.add_image("Spec_layer",out,self.current_epoch,dataformats="CHW")
+      plt.imshow(torch.Tensor.cpu(out.squeeze()))
       plt.show()
       plt.clf()
 
@@ -182,15 +182,16 @@ class ASR(pl.LightningModule):
       #         j=0   
       #     i+=1
 
-      self.logger.experiment.add_image("Norm layer",out[0],self.current_epoch,dataformats="HW")
+      self.logger.experiment.add_image("Norm layer",out,self.current_epoch,dataformats="CHW")
       print('norm out0', out[0].shape)
-      plt.imshow(torch.Tensor.cpu(out[0]))
+      plt.imshow(torch.Tensor.cpu(out.squeeze()))
       plt.show()
       plt.clf()
       
       # print(out.shape)
       out = out.unsqueeze(1)
       out = self.model.cnn(out)
+      out = out.transpose(1,2).flatten(2)
       print(out.shape)
       print('out [0]', out[0].shape)
       # outer=(torch.Tensor.cpu(out).detach())
@@ -213,8 +214,8 @@ class ASR(pl.LightningModule):
       #     i+=1
       # # print(c.shape)
 
-      self.logger.experiment.add_image("CNN layer",out[0][0],self.current_epoch,dataformats="HW")
-      plt.imshow(torch.Tensor.detach(out[0][0]).cpu().numpy())
+      self.logger.experiment.add_image("CNN layer",out,self.current_epoch,dataformats="CHW")
+      plt.imshow(torch.Tensor.detach(out.squeeze()).cpu().numpy())
       plt.show()
 
     
