@@ -29,7 +29,7 @@ class ASR(pl.LightningModule):
         x = batch['waveforms']
         # print('x shape:', x.shape)
         if batch_idx == 0:
-          self.reference_img = x
+          self.example_input_array = x
           print('orig shape', x.shape)
         output = self.model(x)
         pred = output["prediction"]
@@ -112,6 +112,14 @@ class ASR(pl.LightningModule):
             self.logger.experiment.add_figure(f"{key}/{idx}", fig, global_step=self.current_epoch)         
 
 
+    def log_activations(self, tensor, key):
+        # Add activations in a grid
+        fig, ax = plt.subplots(4,4, figsize= (12,12))
+        for idx, spec in enumerate(tensor):
+            # print(idx)
+            ax[(idx-1)//4][(idx-1)%4].imshow(spec.cpu().detach().t(), aspect='auto', origin='lower')            
+        self.logger.experiment.add_figure(f"{key}", fig, global_step=self.current_epoch) 
+
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
 #         scheduler = TriStageLRSchedule(optimizer,
@@ -135,7 +143,7 @@ class ASR(pl.LightningModule):
       # plt.show()
       # plt.clf()
       out = self.model.spec_layer(x)
-      self.log_images(out,'Spec_Layer')
+      self.log_activations(out,'Spec_Layer')
       # outer=(torch.Tensor.cpu(out).detach())
       # print(outer.shape)
       # plt.figure(figsize=(20,5))
@@ -166,7 +174,7 @@ class ASR(pl.LightningModule):
 
       out = out.transpose(1,2)
       out = self.model.norm_layer(out)
-      self.log_images(out,'Norm_Layer')
+      self.log_activations(out,'Norm_Layer')
       # outer=(torch.Tensor.cpu(out).detach())
       # plt.figure(figsize=(10,10))
       # b=np.array([]).reshape(0,outer.shape[2])
@@ -195,7 +203,7 @@ class ASR(pl.LightningModule):
       out = out.unsqueeze(1)
       out = self.model.cnn(out)
       out = out.transpose(1,2).flatten(2)
-      self.log_images(out,'CNN_Layer')
+      self.log_activations(out,'CNN_Layer')
       print(out.shape)
       print('out [0]', out[0].shape)
       # outer=(torch.Tensor.cpu(out).detach())
@@ -224,7 +232,7 @@ class ASR(pl.LightningModule):
 
     
     def training_epoch_end(self,outputs):
-      if self.current_epoch==1:
-        self.showActivations(self.reference_img)
-        self.logger.experiment.add_graph(self.model,self.reference_img)
+      if self.current_epoch==0:
+        self.showActivations(self.example_input_array)
+        # self.logger.experiment.add_graph(self.model,self.reference_img)
 
