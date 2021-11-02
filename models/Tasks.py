@@ -117,7 +117,7 @@ class ASR(pl.LightningModule):
         fig, ax = plt.subplots(4,4, figsize= (12,12))
         for idx, spec in enumerate(tensor):
             # print(idx)
-            ax[(idx-1)//4][(idx-1)%4].imshow(spec.cpu().detach().t(), aspect='auto', origin='lower')            
+            ax[(idx-1)//4][(idx-1)%4].imshow(spec.cpu().detach(), aspect='auto', origin='lower')            
         self.logger.experiment.add_figure(f"{key}", fig, global_step=self.current_epoch) 
 
     def configure_optimizers(self):
@@ -134,22 +134,17 @@ class ASR(pl.LightningModule):
     # Vizualizing activations
 
     def showActivations(self,x):
-      print(x.shape)
-      
       # Logging the input image
       # self.log_images(x,'InputLayer')
       # self.logger.experiment.add_image("input",torch.Tensor.cpu(x),self.current_epoch,dataformats="HW")
       # plt.imshow(torch.Tensor.cpu(x))
       # plt.show()
       # plt.clf()
-      out = self.model.spec_layer(x)
-      self.log_activations(out,'Spec_Layer')
       # outer=(torch.Tensor.cpu(out).detach())
       # print(outer.shape)
       # plt.figure(figsize=(20,5))
       # b=np.array([]).reshape(0,outer.shape[2])
       # c=np.array([]).reshape(4*outer.shape[2],0)
-        
       # # Plotting for layer 1
       # i=0
       # j=0
@@ -161,8 +156,7 @@ class ASR(pl.LightningModule):
       #     if(j==4):
       #         c=np.concatenate((c,b),axis=1)
       #         b=np.array([]).reshape(0,outer.shape[2])
-      #         j=0
-              
+      #         j=0   
       #     i+=1
       # plt.imshow(c)
       # plt.show()
@@ -172,64 +166,23 @@ class ASR(pl.LightningModule):
       # plt.show()
       # plt.clf()
 
+      # Layer 1
+      out = self.model.spec_layer(x)
+      out = torch.log(out+1e-8)
+      self.log_activations(out,'Spec_Layer')
+      # Layer 2
       out = out.transpose(1,2)
       out = self.model.norm_layer(out)
       self.log_activations(out,'Norm_Layer')
-      # outer=(torch.Tensor.cpu(out).detach())
-      # plt.figure(figsize=(10,10))
-      # b=np.array([]).reshape(0,outer.shape[2])
-      # c=np.array([]).reshape(8*outer.shape[2],0)
-      
-      # # Plotting for layer2
-      # i=0
-      # j=0
-      # while(i<64):
-      #     img=outer[0][i]
-      #     b=np.concatenate((img,b),axis=0)
-      #     j+=1
-      #     if(j==8):
-      #         c=np.concatenate((c,b),axis=1)
-      #         b=np.array([]).reshape(0,outer.shape[2])
-      #         j=0   
-      #     i+=1
-
-      # self.logger.experiment.add_image("Norm layer",out,self.current_epoch,dataformats="CHW")
-      # print('norm out0', out[0].shape)
-      # plt.imshow(torch.Tensor.cpu(out.squeeze()))
-      # plt.show()
-      # plt.clf()
-      
-      # print(out.shape)
+      # Layer 3
       out = out.unsqueeze(1)
       out = self.model.cnn(out)
       out = out.transpose(1,2).flatten(2)
       self.log_activations(out,'CNN_Layer')
-      print(out.shape)
-      print('out [0]', out[0].shape)
-      # outer=(torch.Tensor.cpu(out).detach())
-      # plt.figure(figsize=(20,5))
-      # b=np.array([]).reshape(0,outer.shape[2])
-      # c=np.array([]).reshape(8*outer.shape[2],0)
+      # Layer 4
+      out = self.model.fc(out)
+      self.log_activations(out,'FC_Layer')
       
-      # # Plotting for layer3
-      # j=0
-      # i=0
-      # while(i<128):
-      #     img=outer[0][i]
-      #     b=np.concatenate((img,b),axis=0)
-      #     j+=1
-      #     if(j==8):
-      #         c=np.concatenate((c,b),axis=1)
-      #         b=np.array([]).reshape(0,outer.shape[2])
-      #         j=0
-              
-      #     i+=1
-      # # print(c.shape)
-
-      # self.logger.experiment.add_image("CNN layer",out,self.current_epoch,dataformats="CHW")
-      # plt.imshow(torch.Tensor.detach(out.squeeze()).cpu().numpy())
-      # plt.show()
-
     
     def training_epoch_end(self,outputs):
       if self.current_epoch==0:
