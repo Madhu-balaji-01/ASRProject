@@ -133,7 +133,7 @@ class ASR(pl.LightningModule):
         return [optimizer]
     
     # Histogram of weights and biases
-     def custom_histogram_adder(self):
+    def custom_histogram_adder(self):
         # Iterating through all parameters
         for name,params in self.model.named_parameters():
             self.logger.experiment.add_histogram(name,params,self.current_epoch)
@@ -193,7 +193,7 @@ class ASR(pl.LightningModule):
     def training_epoch_end(self,outputs):
       if self.current_epoch==0:
         self.showActivations(self.example_input_array)
-      if self.current_epoch==self.num_epochs:
-        self.custom_histogram_adder()
-        # self.logger.experiment.add_graph(self.model,self.reference_img)
+      
+      self.custom_histogram_adder()
+      # self.logger.experiment.add_graph(self.model,self.reference_img)
 

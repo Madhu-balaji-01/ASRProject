@@ -4,14 +4,14 @@ gpus: 1
 hop_length: 160
 sampling_rate: 16000
 learning_rate: 1e-5
-epochs: 2
+epochs: 30
 output_mode: 'ph'
 
 dataset:
     train:
         root: '/workspace/public_data/SpeechDataset'
         split: 'train'
-        download: True
+        download: False
         
         
     test:
