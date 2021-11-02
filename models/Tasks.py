@@ -129,12 +129,13 @@ class ASR(pl.LightningModule):
       print(x.shape)
       
       # Logging the input image
-      self.log_images(x,'InputLayer')
+      # self.log_images(x,'InputLayer')
       # self.logger.experiment.add_image("input",torch.Tensor.cpu(x),self.current_epoch,dataformats="HW")
       # plt.imshow(torch.Tensor.cpu(x))
       # plt.show()
       # plt.clf()
       out = self.model.spec_layer(x)
+      self.log_images(out,'Spec_Layer')
       # outer=(torch.Tensor.cpu(out).detach())
       # print(outer.shape)
       # plt.figure(figsize=(20,5))
@@ -158,13 +159,14 @@ class ASR(pl.LightningModule):
       # plt.imshow(c)
       # plt.show()
       # plt.clf()
-      self.logger.experiment.add_image("Spec_layer",out,self.current_epoch,dataformats="CHW")
-      plt.imshow(torch.Tensor.cpu(out.squeeze()))
-      plt.show()
-      plt.clf()
+      # self.logger.experiment.add_image("Spec_layer",out,self.current_epoch,dataformats="CHW")
+      # plt.imshow(torch.Tensor.cpu(out.squeeze()))
+      # plt.show()
+      # plt.clf()
 
       out = out.transpose(1,2)
       out = self.model.norm_layer(out)
+      self.log_images(out,'Norm_Layer')
       # outer=(torch.Tensor.cpu(out).detach())
       # plt.figure(figsize=(10,10))
       # b=np.array([]).reshape(0,outer.shape[2])
@@ -183,16 +185,17 @@ class ASR(pl.LightningModule):
       #         j=0   
       #     i+=1
 
-      self.logger.experiment.add_image("Norm layer",out,self.current_epoch,dataformats="CHW")
-      print('norm out0', out[0].shape)
-      plt.imshow(torch.Tensor.cpu(out.squeeze()))
-      plt.show()
-      plt.clf()
+      # self.logger.experiment.add_image("Norm layer",out,self.current_epoch,dataformats="CHW")
+      # print('norm out0', out[0].shape)
+      # plt.imshow(torch.Tensor.cpu(out.squeeze()))
+      # plt.show()
+      # plt.clf()
       
       # print(out.shape)
       out = out.unsqueeze(1)
       out = self.model.cnn(out)
       out = out.transpose(1,2).flatten(2)
+      self.log_images(out,'CNN_Layer')
       print(out.shape)
       print('out [0]', out[0].shape)
       # outer=(torch.Tensor.cpu(out).detach())
@@ -215,9 +218,9 @@ class ASR(pl.LightningModule):
       #     i+=1
       # # print(c.shape)
 
-      self.logger.experiment.add_image("CNN layer",out,self.current_epoch,dataformats="CHW")
-      plt.imshow(torch.Tensor.detach(out.squeeze()).cpu().numpy())
-      plt.show()
+      # self.logger.experiment.add_image("CNN layer",out,self.current_epoch,dataformats="CHW")
+      # plt.imshow(torch.Tensor.detach(out.squeeze()).cpu().numpy())
+      # plt.show()
 
     
     def training_epoch_end(self,outputs):
