@@ -29,7 +29,7 @@ class ASR(pl.LightningModule):
         x = batch['waveforms']
         # print('x shape:', x.shape)
         if batch_idx == 0:
-          self.reference_img = x[0].unsqueeze(0)
+          self.reference_img = x
           print('orig shape', x.shape)
         output = self.model(x)
         pred = output["prediction"]
@@ -127,12 +127,13 @@ class ASR(pl.LightningModule):
 
     def showActivations(self,x):
       print(x.shape)
-      plt.imshow(torch.Tensor.cpu(x))
-
+      
       # Logging the input image
-      self.logger.experiment.add_image("input",torch.Tensor.cpu(x),self.current_epoch,dataformats="HW")
-      plt.show()
-      plt.clf()
+      self.log_images(x,'InputLayer')
+      # self.logger.experiment.add_image("input",torch.Tensor.cpu(x),self.current_epoch,dataformats="HW")
+      # plt.imshow(torch.Tensor.cpu(x))
+      # plt.show()
+      # plt.clf()
       out = self.model.spec_layer(x)
       # outer=(torch.Tensor.cpu(out).detach())
       # print(outer.shape)
