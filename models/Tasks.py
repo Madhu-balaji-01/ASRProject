@@ -224,5 +224,7 @@ class ASR(pl.LightningModule):
 
     
     def training_epoch_end(self,outputs):
-      self.showActivations(self.reference_img)
+      if self.current_epoch==1:
+        self.showActivations(self.reference_img)
+        self.logger.experiment.add_graph(self.model,self.reference_img)
 
