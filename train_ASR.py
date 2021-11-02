@@ -89,7 +89,7 @@ def main(cfg):
 
     model = ASR(getattr(Model, cfg.model.type)(spec_layer, **cfg.model.args),
                 text_transform,
-                **cfg.pl)
+                **cfg.pl, num_epochs = cfg.epochs)
     checkpoint_callback = ModelCheckpoint(monitor="valid_ctc_loss",
                                           filename="{epoch:02d}-{valid_ctc_loss:.2f}-{PER:.2f}",
                                           save_top_k=3,
