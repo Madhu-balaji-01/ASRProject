@@ -187,8 +187,10 @@ class ASR(pl.LightningModule):
       self.log_activations(out,'CNN_Layer')
       # Layer 4
       out = self.model.fc(out)
-      self.log_activations(out,'FC_Layer')
-      
+      self.log_activations(out,'FC1_Layer')
+      # Layer 5
+      out = self.model.classifier(out)
+      self.log_activations(out,'FC2_Layer')
     
     def training_epoch_end(self,outputs):
       if self.current_epoch==0:

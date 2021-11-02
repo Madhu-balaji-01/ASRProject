@@ -4,7 +4,7 @@ gpus: 1
 hop_length: 160
 sampling_rate: 16000
 learning_rate: 1e-5
-epochs: 30
+epochs: 1
 output_mode: 'ph'
 
 dataset:
