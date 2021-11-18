@@ -184,7 +184,7 @@ class CNN_LINEAR(nn.Module):
         return output  
 
 
-class CNN_LSTM(nn.Module):
+class VGGish(nn.Module):
     def __init__(self,
                  spec_layer,
                  norm_mode,
