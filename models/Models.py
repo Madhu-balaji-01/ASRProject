@@ -181,4 +181,57 @@ class CNN_LINEAR(nn.Module):
         
         output = {"prediction": pred,
                   "spectrogram": spec}
+        return output  
+
+
+class CNN_LSTM(nn.Module):
+    def __init__(self,
+                 spec_layer,
+                 norm_mode,
+                 input_dim,
+                 output_dim=128):
+        super().__init__()
+        
+        self.spec_layer = spec_layer
+        self.norm_layer = Normalization(mode=norm_mode)
+        
+        self.features = nn.Sequential(
+            nn.Conv2d(1, 64, 3, 1, 1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d(64, 128, 3, 1, 1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d(128, 256, 3, 1, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, 3, 1, 1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2),
+            nn.Conv2d(256, 512, 3, 1, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, 3, 1, 1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2, 2))
+
+        self.embeddings = nn.Sequential(
+            nn.Linear(512*24, 4096),
+            nn.ReLU(inplace=True),
+            nn.Linear(4096, 4096),
+            nn.ReLU(inplace=True),
+            nn.Linear(4096, output_dim),
+            nn.ReLU(inplace=True))
+
+    def forward(self, x):
+        spec = self.spec_layer(x) # (B, F, T)
+        spec = torch.log(spec+1e-8)
+        spec = spec.transpose(1,2) # (B, T, F)
+        spec = self.norm_layer(spec)
+        spec = spec.unsqueeze(1) # (B, 1, T, F)
+
+        x = self.features(spec) 
+        x = x.view(x.size(0),-1)
+        pred = self.embeddings(x) 
+        
+        output = {"prediction": pred,
+                  "spectrogram": spec}
         return output   
