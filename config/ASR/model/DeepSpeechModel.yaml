@@ -1,0 +1,7 @@
+type: 'DeepSpeechModel'
+args:
+    norm_mode: 'imagewise',
+    n_cnn_layers: 3,
+    n_rnn_layers: 5,
+    rnn_dim: 512,
+    n_feats: 128
