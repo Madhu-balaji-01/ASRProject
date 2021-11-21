@@ -283,7 +283,7 @@ class BidirectionalGRU(nn.Module):
 
 class DeepSpeechModel(nn.Module):
     def __init__(self, spec_layer, norm_mode, n_cnn_layers, n_rnn_layers, 
-                    rnn_dim, n_feats, output_dim=88,stride=2, dropout=0.1):
+                    rnn_dim, n_feats, output_dim,stride=2, dropout=0.1):
         super(DeepSpeechModel, self).__init__()
         n_feats = n_feats//2
         self.spec_layer = spec_layer
@@ -292,7 +292,7 @@ class DeepSpeechModel(nn.Module):
 
         # n residual cnn layers with filter size of 32
         self.rescnn_layers = nn.Sequential(*[
-            ResidualCNN(norm_mode=norm_mode, 32, 32, kernel=3, stride=1, dropout=dropout, n_feats=n_feats) 
+            ResidualCNN(norm_mode, 32, 32, kernel=3, stride=1, dropout=dropout, n_feats=n_feats) 
             for _ in range(n_cnn_layers)
         ])
         self.fully_connected = nn.Linear(n_feats*32, rnn_dim)
