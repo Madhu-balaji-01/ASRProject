@@ -67,7 +67,7 @@ def main(cfg):
     elif cfg.spec_layer.type=='MelSpectrogram':
         cfg.model.args.input_dim = cfg.spec_layer.args.n_mels
     elif cfg.spec_layer.type=='CQT':
-        cfg.model.args.input_dim = cfg.spec_layer.args.n_fft//2+1
+        cfg.model.args.input_dim = cfg.spec_layer.args.n_bins
     
     text_transform = TextTransform(output_dict, cfg.output_mode) # for text to int conversion layer
 
