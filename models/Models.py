@@ -324,4 +324,4 @@ class DeepSpeechModel(nn.Module):
 
         output = {"prediction": pred,
                   "spectrogram": spec}
-        return x
+        return output
