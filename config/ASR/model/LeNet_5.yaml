@@ -1,4 +1,4 @@
-type: 'CNN_LINEAR'
+type: 'LeNet_5'
 args:
     norm_mode: 'imagewise'
     hidden_dim2: 256
