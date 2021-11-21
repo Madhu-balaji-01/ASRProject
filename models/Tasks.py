@@ -192,10 +192,10 @@ class ASR(pl.LightningModule):
       out = self.model.classifier(out)
       self.log_activations(out,'FC2_Layer')
     
-    def training_epoch_end(self,outputs):
-      if self.current_epoch==0:
-        self.showActivations(self.example_input_array)
+    # def training_epoch_end(self,outputs):
+    #   if self.current_epoch==0:
+    #     self.showActivations(self.example_input_array)
       
-      self.custom_histogram_adder()
+    #   self.custom_histogram_adder()
       # self.logger.experiment.add_graph(self.model,self.reference_img)
 

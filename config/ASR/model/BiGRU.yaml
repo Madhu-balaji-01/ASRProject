@@ -1,0 +1,7 @@
+type: 'BidirectionalGRU'
+args:
+    input_dim: 0 # will be overwritten inside the code
+    hidden_dim: 256
+    output_dim: 0 # will be overwritten inside the code
+    dropout: 0.1
+    batch_first: True
