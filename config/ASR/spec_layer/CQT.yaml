@@ -1,0 +1,21 @@
+type: 'CQT2010v2'
+args:    
+    sr: ${sampling_rate}
+    n_bins: 90
+    bins_per_octave: 12
+    hop_length: ${hop_length}
+    window: 'hann'
+    pad_mode: 'reflect'
+    fmin: 32.7
+    fmax: null
+    norm: 1
+    trainable: False
+    earlydownsample: False
+    verbose: True
+    output_format: 'Magnitude'
+
+     
+    
+    
+    
+     

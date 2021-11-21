@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from models.utils import Normalization
 import fastwer
 import contextlib
+import nnAudio
 
 # from nnAudio.Spectrogram import MelSpectrogram
 import pandas as pd
@@ -164,11 +165,14 @@ class LeNet_5(nn.Module):
             nn.Linear(hidden_dim2, hidden_dim3),
             nn.Linear(hidden_dim3, hidden_dim),
         )
-        
         self.classifier = nn.Linear(hidden_dim, output_dim)
         
     def forward(self, x):
-        spec = self.spec_layer(x) # (B, F, T)
+        # spec_layer = nnAudio.Spectrogram.CQT(sr=16000, hop_length=512, fmin=32.7, fmax=None, n_bins=84, bins_per_octave=12, norm=1, window='hann', center=True, pad_mode='reflect', trainable=False, output_format='Magnitude', verbose=True) # Initializing the model
+        # spec_layer = spec_layer.to('cuda')
+        spec = self.spec_layer(x)
+
+        # spec = self.spec_layer(x) # (B, F, T)
         spec = torch.log(spec+1e-8)
         spec = spec.transpose(1,2) # (B, T, F)
         spec = self.norm_layer(spec)

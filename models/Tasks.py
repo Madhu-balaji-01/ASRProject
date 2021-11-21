@@ -31,7 +31,7 @@ class ASR(pl.LightningModule):
         # print('x shape:', x.shape)
         if batch_idx == 0:
           self.example_input_array = x
-          print('orig shape', x.shape)
+          # print('orig shape', x.shape)
         output = self.model(x)
         pred = output["prediction"]
         pred = torch.log_softmax(pred, -1) # CTC loss requires log_softmax

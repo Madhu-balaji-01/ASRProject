@@ -44,5 +44,5 @@ pl:
     lr: ${learning_rate}  
     
 defaults:    
-    - spec_layer: Mel
-    - model: DeepSpeechModel
+    - spec_layer: CQT
+    - model: LeNet_5
