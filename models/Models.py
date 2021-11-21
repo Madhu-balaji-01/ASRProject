@@ -158,10 +158,16 @@ class LeNet_5(nn.Module):
           # Subsampling 1
             nn.AvgPool2d((1, 2))
         )
-        
+
+        if self.spec_layer.type == 'CQT':
+          hidden_dim2 = 21280
+          input_dim_to_fc = 1008
+        else:
+          input_dim_to_fc = (hidden_dim // 16) * (input_dim // 4)
+
         # Fully connected layer
         self.fc = nn.Sequential(
-            nn.Linear((hidden_dim // 16) * (input_dim // 4), hidden_dim2),
+            nn.Linear(input_dim_to_fc, hidden_dim2),
             nn.Linear(hidden_dim2, hidden_dim3),
             nn.Linear(hidden_dim3, hidden_dim),
         )

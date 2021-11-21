@@ -1,7 +1,7 @@
 type: 'CQT2010v2'
 args:    
     sr: ${sampling_rate}
-    n_bins: 90
+    n_bins: 84
     bins_per_octave: 12
     hop_length: ${hop_length}
     window: 'hann'
@@ -10,7 +10,6 @@ args:
     fmax: null
     norm: 1
     trainable: False
-    earlydownsample: False
     verbose: True
     output_format: 'Magnitude'
 
