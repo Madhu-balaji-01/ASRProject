@@ -3,7 +3,7 @@ args:
     norm_mode: 'imagewise'
     n_cnn_layers: 3
     n_rnn_layers: 5
-    rnn_dim: 768
+    rnn_dim: 40
     n_feats: 80
     input_dim: 0 # will be overwritten
     output_dim: 0 # will be overwritten 

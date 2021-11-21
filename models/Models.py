@@ -194,6 +194,21 @@ class LeNet_5(nn.Module):
                   "spectrogram": spec}
         return output  
 
+class CNNLayerNorm(nn.Module):
+    """Layer normalization built for cnns input"""
+    def __init__(self, n_feats):
+        super(CNNLayerNorm, self).__init__()
+        self.layer_norm = nn.LayerNorm(n_feats)
+
+    def forward(self, x):
+        # x (batch, channel, feature, time)
+        print(1, x.shape)
+        x = x.transpose(2, 3).contiguous() # (batch, channel, time, feature)
+        print(2, x.shape)
+        x = self.layer_norm(x)
+        
+        return x.transpose(2, 3).contiguous() # (batch, channel, feature, time) 
+
 
 class ResidualCNN(nn.Module):
     """Residual CNN inspired by https://arxiv.org/pdf/1603.05027.pdf
@@ -201,21 +216,20 @@ class ResidualCNN(nn.Module):
     """
     def __init__(self, in_channels, out_channels, kernel, stride, dropout, n_feats):
         super(ResidualCNN, self).__init__()
-
         self.cnn1 = nn.Conv2d(in_channels, out_channels, kernel, stride, padding=kernel//2)
         self.cnn2 = nn.Conv2d(out_channels, out_channels, kernel, stride, padding=kernel//2)
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
-        self.layer_norm1 = Normalization(mode=norm_mode)
-        self.layer_norm2 = Normalization(mode=norm_mode)
+        self.layer_norm1 = CNNLayerNorm(n_feats)
+        self.layer_norm2 = CNNLayerNorm(n_feats)
 
     def forward(self, x):
         residual = x  # (batch, channel, feature, time)
-        x = self.layer_norm1(x)
+        # x = self.layer_norm1(x)
         x = F.gelu(x)
         x = self.dropout1(x)
         x = self.cnn1(x)
-        x = self.layer_norm2(x)
+        # x = self.layer_norm2(x)
         x = F.gelu(x)
         x = self.dropout2(x)
         x = self.cnn2(x)
@@ -225,7 +239,6 @@ class ResidualCNN(nn.Module):
 class BidirectionalGRU(nn.Module):
     def __init__(self, rnn_dim, hidden_size, dropout, batch_first):
         super(BidirectionalGRU, self).__init__()
-
         self.BiGRU = nn.GRU(
             input_size=rnn_dim, hidden_size=hidden_size,
             num_layers=1, batch_first=batch_first, bidirectional=True)
@@ -239,10 +252,21 @@ class BidirectionalGRU(nn.Module):
         x = self.dropout(x)
         return x
 
-
 class DeepSpeechModel(nn.Module):
-    def __init__(self, n_cnn_layers, n_rnn_layers, rnn_dim, n_class, n_feats, stride=2, dropout=0.1):
+    def __init__(self, 
+                spec_layer,
+                norm_mode,
+                input_dim,
+                output_dim,
+                n_cnn_layers, 
+                n_rnn_layers, 
+                rnn_dim, 
+                n_feats, 
+                stride=2, 
+                dropout=0.1):
         super(DeepSpeechModel, self).__init__()
+        self.spec_layer = spec_layer
+        self.norm_layer = Normalization(mode=norm_mode)
         n_feats = n_feats//2
         self.cnn = nn.Conv2d(1, 32, 3, stride=stride, padding=3//2)  # cnn for extracting heirachal features
 
@@ -261,7 +285,7 @@ class DeepSpeechModel(nn.Module):
             nn.Linear(rnn_dim*2, rnn_dim),  # birnn returns rnn_dim*2
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(rnn_dim, n_class)
+            nn.Linear(rnn_dim, output_dim)
         )
 
     def forward(self, inp):
@@ -270,12 +294,17 @@ class DeepSpeechModel(nn.Module):
         spec = spec.transpose(1,2) # (B, T, F)
         spec = self.norm_layer(spec)
         spec = spec.unsqueeze(1) # (B, 1, T, F)
+        print('spec', spec.shape)
 
         x = self.cnn(spec)
+        print('aft cnn', x.shape)
         x = self.rescnn_layers(x)
+        print('aft rescnn', x.shape)
         sizes = x.size()
         x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # (batch, feature, time)
         x = x.transpose(1, 2) # (batch, time, feature)
+        print('trans', x.shape)
+        
         x = self.fully_connected(x)
         x = self.birnn_layers(x)
         pred = self.classifier(x)
