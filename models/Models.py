@@ -245,7 +245,7 @@ class CNNLayerNorm(nn.Module):
 
     def forward(self, x):
         # x (batch, channel, feature, time)
-        x = x.transpose(2, 3).contiguous() # (batch, channel, time, feature)
+        # x = x.transpose(2, 3).contiguous() # (batch, channel, time, feature)
         x = self.layer_norm(x)
         return x.transpose(2, 3).contiguous() # (batch, channel, feature, time) 
 
@@ -309,7 +309,7 @@ class DeepSpeechModel(nn.Module):
         ])
         self.fully_connected = nn.Linear(n_feats*32, rnn_dim)
         self.birnn_layers = nn.Sequential(*[
-            BidirectionalGRU(norm_mode = norm_mode, rnn_dim=rnn_dim if i==0 else rnn_dim*2,
+            BidirectionalGRU(rnn_dim=rnn_dim if i==0 else rnn_dim*2,
                              hidden_size=rnn_dim, dropout=dropout, batch_first=i==0)
             for i in range(n_rnn_layers)
         ])
