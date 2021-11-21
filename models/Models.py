@@ -277,6 +277,7 @@ class ResidualCNN(nn.Module):
         x = self.dropout2(x)
         x = self.cnn2(x)
         x += residual
+        print('rescnn size', x.shape)
         return x # (batch, channel, feature, time)
 
 class BidirectionalGRU(nn.Module):
@@ -299,12 +300,13 @@ class BidirectionalGRU(nn.Module):
 
 class DeepSpeechModel(nn.Module):
     def __init__(self, spec_layer, norm_mode, n_cnn_layers, n_rnn_layers, 
-                    rnn_dim, n_feats, input_dim, output_dim,stride=2, dropout=0.1):
+                 rnn_dim, n_feats, input_dim, output_dim,stride=2, 
+                 hidden_dim = 768, dropout=0.1):
         super(DeepSpeechModel, self).__init__()
         n_feats = n_feats//2
         self.spec_layer = spec_layer
         self.norm_layer = Normalization(mode=norm_mode)
-        self.cnn = nn.Conv2d(1, 32, 3, stride=stride, padding=3//2)  # cnn for extracting heirachal features
+        self.cnn = nn.Conv2d(1, 32, 3, stride=stride, padding=1)  # cnn for extracting heirachal features
 
         # n residual cnn layers with filter size of 32
         self.rescnn_layers = nn.Sequential(*[
@@ -329,12 +331,17 @@ class DeepSpeechModel(nn.Module):
         spec = spec.transpose(1,2) # (B, T, F)
         spec = self.norm_layer(spec)
         spec = spec.unsqueeze(1) # (B, 1, T, F)
+        print('spec', spec.shape)
 
         x = self.cnn(spec)
+        print('cnn', x.shape)
         x = self.rescnn_layers(x)
+        print('rescnn', spec.shape)
         sizes = x.size()
-        # x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # (batch, feature, time)
+        print(sizes)
+        x = x.view(sizes[0], sizes[1]*sizes[2], sizes[3])  # (batch, feature, time)
         # x = x.transpose(1, 2) # (batch, time, feature)
+        print('btf', x.shape)
         x = self.fully_connected(x)
         x = self.birnn_layers(x)
         pred = self.classifier(x)
