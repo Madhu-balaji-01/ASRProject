@@ -11,7 +11,7 @@ dataset:
     train:
         root: '/workspace/public_data/SpeechDataset'
         split: 'train'
-        download: True
+        download: False
         
         
     test:

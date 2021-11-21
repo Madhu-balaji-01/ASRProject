@@ -237,18 +237,30 @@ class VGGish(nn.Module):
         return output   
 
 
+class CNNLayerNorm(nn.Module):
+    """Layer normalization built for cnns input"""
+    def __init__(self, n_feats):
+        super(CNNLayerNorm, self).__init__()
+        self.layer_norm = nn.LayerNorm(n_feats)
+
+    def forward(self, x):
+        # x (batch, channel, feature, time)
+        x = x.transpose(2, 3).contiguous() # (batch, channel, time, feature)
+        x = self.layer_norm(x)
+        return x.transpose(2, 3).contiguous() # (batch, channel, feature, time) 
+
 class ResidualCNN(nn.Module):
     """Residual CNN inspired by https://arxiv.org/pdf/1603.05027.pdf
         except with layer norm instead of batch norm
     """
-    def __init__(self, norm_mode, in_channels, out_channels, kernel, stride, dropout, n_feats):
+    def __init__(self, in_channels, out_channels, kernel, stride, dropout, n_feats):
         super(ResidualCNN, self).__init__()
 
         self.cnn1 = nn.Conv2d(in_channels, out_channels, kernel, stride, padding=kernel//2)
         self.cnn2 = nn.Conv2d(out_channels, out_channels, kernel, stride, padding=kernel//2)
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
-        self.norm_layer = Normalization(mode=norm_mode)
+        self.norm_layer = CNNLayerNorm(n_feats)
 
     def forward(self, x):
         residual = x  # (batch, channel, feature, time)
@@ -264,13 +276,13 @@ class ResidualCNN(nn.Module):
         return x # (batch, channel, feature, time)
 
 class BidirectionalGRU(nn.Module):
-    def __init__(self, norm_mode,rnn_dim, hidden_size, dropout, batch_first):
+    def __init__(self, rnn_dim, hidden_size, dropout, batch_first):
         super(BidirectionalGRU, self).__init__()
 
         self.BiGRU = nn.GRU(
             input_size=rnn_dim, hidden_size=hidden_size,
             num_layers=1, batch_first=batch_first, bidirectional=True)
-        self.norm_layer = Normalization(mode=norm_mode)
+        self.norm_layer = nn.LayerNorm(rnn_dim)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
@@ -283,7 +295,7 @@ class BidirectionalGRU(nn.Module):
 
 class DeepSpeechModel(nn.Module):
     def __init__(self, spec_layer, norm_mode, n_cnn_layers, n_rnn_layers, 
-                    rnn_dim, n_feats, output_dim,stride=2, dropout=0.1):
+                    rnn_dim, n_feats, input_dim, output_dim,stride=2, dropout=0.1):
         super(DeepSpeechModel, self).__init__()
         n_feats = n_feats//2
         self.spec_layer = spec_layer
@@ -292,7 +304,7 @@ class DeepSpeechModel(nn.Module):
 
         # n residual cnn layers with filter size of 32
         self.rescnn_layers = nn.Sequential(*[
-            ResidualCNN(norm_mode, 32, 32, kernel=3, stride=1, dropout=dropout, n_feats=n_feats) 
+            ResidualCNN(32, 32, kernel=3, stride=1, dropout=dropout, n_feats=n_feats) 
             for _ in range(n_cnn_layers)
         ])
         self.fully_connected = nn.Linear(n_feats*32, rnn_dim)

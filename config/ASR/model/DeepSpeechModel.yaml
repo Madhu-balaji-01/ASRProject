@@ -5,4 +5,5 @@ args:
     n_rnn_layers: 5
     rnn_dim: 512
     n_feats: 128
+    input_dim: 0 # will be overwritten
     output_dim: 0 # will be overwritten 
