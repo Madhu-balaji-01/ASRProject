@@ -46,7 +46,7 @@ def main(cfg):
     
     # Auto inferring output mode and output dimension
     if cfg.output_mode == 'char':
-        dict_file = 'characters_dict'
+        dict_file = './ASRProject/characters_dict'
         cfg.data_processing.label_key = 'words'
     elif cfg.output_mode == 'ph':
         dict_file = './ASRProject/phonemics_dict'
