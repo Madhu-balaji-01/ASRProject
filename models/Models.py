@@ -30,11 +30,15 @@ class simpleLSTM(nn.Module):
     def forward(self, x):
         spec = self.spec_layer(x) # (B, F, T)
         spec = torch.log(spec+1e-8)
+        print(1, spec.shape)
         spec = spec.transpose(1,2) # (B, T, F)
+        print(2,spec.shape)
         x = self.embedding(spec)
+        print(3,x.shape)
         x, _ = self.bilstm(x)
+        print(4, x.shape)
         pred = self.classifier(x)
-
+        print(pred.shape)
         output = {"prediction": pred,
                   "spectrogram": spec}
         return output
@@ -264,11 +268,11 @@ class ResidualCNN(nn.Module):
 
     def forward(self, x):
         residual = x  # (batch, channel, feature, time)
-        x = self.norm_layer(x)
+        # x = self.norm_layer(x)
         x = F.gelu(x)
         x = self.dropout1(x)
         x = self.cnn1(x)
-        x = self.norm_layer(x)
+        # x = self.norm_layer(x)
         x = F.gelu(x)
         x = self.dropout2(x)
         x = self.cnn2(x)
@@ -286,7 +290,7 @@ class BidirectionalGRU(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x):
-        x = self.norm_layer(x)
+        # x = self.norm_layer(x)
         x = F.gelu(x)
         x, _ = self.BiGRU(x)
         x = self.dropout(x)
@@ -329,8 +333,8 @@ class DeepSpeechModel(nn.Module):
         x = self.cnn(spec)
         x = self.rescnn_layers(x)
         sizes = x.size()
-        x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # (batch, feature, time)
-        x = x.transpose(1, 2) # (batch, time, feature)
+        # x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # (batch, feature, time)
+        # x = x.transpose(1, 2) # (batch, time, feature)
         x = self.fully_connected(x)
         x = self.birnn_layers(x)
         pred = self.classifier(x)
