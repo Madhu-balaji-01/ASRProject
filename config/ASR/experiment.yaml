@@ -44,4 +44,4 @@ pl:
     
 defaults:    
     - spec_layer: Mel
-    - model: BiGRU
+    - model: LeNet_5

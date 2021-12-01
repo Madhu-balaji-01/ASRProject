@@ -187,15 +187,15 @@ class ASR(pl.LightningModule):
       self.log_activations(out,'CNN_Layer')
       # Layer 4
       out = self.model.fc(out)
-      self.log_activations(out,'FC1_Layer')
+      self.log_activations(out,'FC_Layer')
       # Layer 5
       out = self.model.classifier(out)
-      self.log_activations(out,'FC2_Layer')
+      self.log_activations(out,'Classifier_Layer')
     
-    # def training_epoch_end(self,outputs):
-    #   if self.current_epoch==0:
-    #     self.showActivations(self.example_input_array)
+    def training_epoch_end(self,outputs):
+      if self.current_epoch==0:
+        self.showActivations(self.example_input_array)
       
-    #   self.custom_histogram_adder()
-      # self.logger.experiment.add_graph(self.model,self.reference_img)
+      self.custom_histogram_adder()
+      # self.logger.experiment.add_graph(self.model,self.example_input_array)
 
