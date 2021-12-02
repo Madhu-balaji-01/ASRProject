@@ -193,6 +193,64 @@ class LeNet_5(nn.Module):
         output = {"prediction": pred,
                   "spectrogram": spec}
         return output  
+      
+
+class VGGish(nn.Module):
+    def __init__(self,
+              spec_layer,
+              norm_mode,
+              input_dim,
+              output_dim=128):
+      super().__init__()
+      
+      self.spec_layer = spec_layer
+      self.norm_layer = Normalization(mode=norm_mode)
+      
+      self.cnn = nn.Sequential(
+          nn.Conv2d(1, 64, (3, 3), padding=1),
+          nn.ReLU(inplace=True),
+          nn.MaxPool2d((1, 2)),
+          nn.Conv2d(64, 128, (3, 3), padding=1),
+          nn.ReLU(inplace=True),
+          nn.MaxPool2d((1, 2)),
+          nn.Conv2d(128, 256, (3, 3), padding=1),
+          nn.ReLU(inplace=True),
+          nn.Conv2d(256, 256, (3, 3), padding=1),
+          nn.ReLU(inplace=True),
+          nn.MaxPool2d((1, 2)),
+          nn.Conv2d(256, 512, (3, 3), padding=1),
+          nn.ReLU(inplace=True),
+          nn.Conv2d(512, 512, (3, 3), padding=1),
+          nn.ReLU(inplace=True),
+          nn.MaxPool2d((1, 2)))
+
+      self.fc = nn.Sequential(
+          nn.Linear(2560, 1024),
+          nn.ReLU(inplace=True),
+          nn.Linear(1024, 521),
+          nn.ReLU(inplace=True),
+          nn.Linear(521, 256),
+          nn.ReLU(inplace=True))
+
+      self.classifier = nn.Linear(256, output_dim)
+        
+
+    def forward(self, x):
+        spec = self.spec_layer(x) # (B, F, T)
+        spec = torch.log(spec+1e-8)
+        spec = spec.transpose(1,2) # (B, T, F)
+        spec = self.norm_layer(spec)
+        spec1 = spec.unsqueeze(1) # (B, 1, T, F)
+
+        x = self.cnn(spec1) 
+        x = x.transpose(1,2).flatten(2)
+        x = self.fc(x)
+        pred = self.classifier(x)
+
+        output = {"prediction": pred,
+                  "spectrogram": spec}
+        return output
+
 
 # test_PER: 1.0, test_ctc_loss: 4.33 for 1 epoch
 class BidirectionalGRU(nn.Module):
@@ -222,6 +280,7 @@ class BidirectionalGRU(nn.Module):
         output = {"prediction": pred,
                   "spectrogram": spec}
         return output
+    
         
 
 # Models that need fixing.
