@@ -189,7 +189,6 @@ class LeNet_5(nn.Module):
         x = self.fc(x) # (B, T, hidden_dim//8*F//4)
         
         pred = self.classifier(x)
-        
         output = {"prediction": pred,
                   "spectrogram": spec}
         return output  
@@ -289,18 +288,12 @@ class CNNLayerNorm(nn.Module):
 
     def forward(self, x):
         # x (batch, channel, feature, time)
-        print(1, x.shape)
         x = x.transpose(2, 3).contiguous() # (batch, channel, time, feature)
-        print(2, x.shape)
         x = self.layer_norm(x)
-        
         return x.transpose(2, 3).contiguous() # (batch, channel, feature, time) 
 
 
 class ResidualCNN(nn.Module):
-    """Residual CNN inspired by https://arxiv.org/pdf/1603.05027.pdf
-        except with layer norm instead of batch norm
-    """
     def __init__(self, spec_layer, norm_mode, input_dim, output_dim, n_feats = 80, dropout=0.1):
         super(ResidualCNN, self).__init__()
         self.output_dim = output_dim
@@ -312,134 +305,32 @@ class ResidualCNN(nn.Module):
         self.cnn2 = nn.Conv2d(output_dim, output_dim, kernel_size=3, stride=1, padding=1)
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
-        self.layer_norm = nn.LayerNorm(input_dim)
-        # self.layer_norm2 = CNNLayerNorm(n_feats)
+        self.layer_norm = CNNLayerNorm(n_feats)
+        self.res_conv = nn.Conv2d(input_dim, output_dim, kernel_size=1)
 
     def forward(self, x):
-
         spec = self.spec_layer(x) # (B, F, T)
         spec = torch.log(spec+1e-8)
-        spec = spec.transpose(1,2) # (B, T, F)
+        # spec = spec.transpose(1,2) # (B, T, F)
         spec = self.norm_layer(spec)
         x = spec.unsqueeze(1) # (B, 1, T, F)
-        print('spec dim', spec.shape )
-        print('inputdim', self.input_dim)
-        print('outputdim', self.output_dim)
         
-        # x = x.transpose(2,3)
-        residual = x.transpose(2,3)  # (batch, channel, feature, time)
-        print('residual', residual.shape)
+        residual = x  # (batch, channel, feature, time)
         # x = x.transpose(2,3)
         x = self.layer_norm(x) # (B, C, F, T)
-        print('layernorm1', x.shape)
         x = F.gelu(x)
         x = self.dropout1(x)
-        x = x.transpose(1,2) 
-        x = x.transpose(1,3)
+        x = x.transpose(1,2)
         x = self.cnn1(x) 
-        print('cnn1', x.shape)
-        # x = x.transpose(1,2)
-        # x = self.layer_norm(x)
         x = F.gelu(x)
         x = self.dropout2(x)
         x = self.cnn2(x)
-        print('cnn2', x.shape)
-        x = x.transpose(1,2)
+        
+        residual = self.res_conv(residual.transpose(1,2))
         x += residual
-
+        x = x.squeeze(2).transpose(1,2)
+        
         output = {"prediction": x,
                   "spectrogram": spec}
         return output # (batch, channel, feature, time)
         
-
-# Models that need fixing.
-# Please DO NOT DELETE these yet. 
-
-
-# class ResidualCNN(nn.Module):
-#     """Residual CNN inspired by https://arxiv.org/pdf/1603.05027.pdf
-#         except with layer norm instead of batch norm
-#     """
-#     def __init__(self, in_channels, out_channels, kernel, stride, dropout, n_feats):
-#         super(ResidualCNN, self).__init__()
-#         self.cnn1 = nn.Conv2d(in_channels, out_channels, kernel, stride, padding=kernel//2)
-#         self.cnn2 = nn.Conv2d(out_channels, out_channels, kernel, stride, padding=kernel//2)
-#         self.dropout1 = nn.Dropout(dropout)
-#         self.dropout2 = nn.Dropout(dropout)
-#         self.layer_norm1 = CNNLayerNorm(n_feats)
-#         self.layer_norm2 = CNNLayerNorm(n_feats)
-
-#     def forward(self, x):
-#         residual = x  # (batch, channel, feature, time)
-#         # x = self.layer_norm1(x)
-#         x = F.gelu(x)
-#         x = self.dropout1(x)
-#         x = self.cnn1(x)
-#         # x = self.layer_norm2(x)
-#         x = F.gelu(x)
-#         x = self.dropout2(x)
-#         x = self.cnn2(x)
-#         x += residual
-#         return x # (batch, channel, feature, time)
-
-
-# class DeepSpeechModel(nn.Module):
-#     def __init__(self, 
-#                 spec_layer,
-#                 norm_mode,
-#                 input_dim,
-#                 output_dim,
-#                 n_cnn_layers, 
-#                 n_rnn_layers, 
-#                 rnn_dim, 
-#                 n_feats, 
-#                 stride=2, 
-#                 dropout=0.1):
-#         super(DeepSpeechModel, self).__init__()
-#         self.spec_layer = spec_layer
-#         self.norm_layer = Normalization(mode=norm_mode)
-#         n_feats = n_feats//2
-#         self.cnn = nn.Conv2d(1, 32, 3, stride=stride, padding=3//2)  # cnn for extracting heirachal features
-
-#         # n residual cnn layers with filter size of 32
-#         self.rescnn_layers = nn.Sequential(*[
-#             ResidualCNN(32, 32, kernel=3, stride=1, dropout=dropout, n_feats=n_feats) 
-#             for _ in range(n_cnn_layers)
-#         ])
-#         self.fully_connected = nn.Linear(n_feats*32, rnn_dim)
-#         self.birnn_layers = nn.Sequential(*[
-#             BidirectionalGRU(rnn_dim=rnn_dim if i==0 else rnn_dim*2,
-#                               hidden_size=rnn_dim, dropout=dropout, batch_first=i==0)
-#             for i in range(n_rnn_layers)
-#         ])
-#         self.classifier = nn.Sequential(
-#             nn.Linear(rnn_dim*2, rnn_dim),  # birnn returns rnn_dim*2
-#             nn.GELU(),
-#             nn.Dropout(dropout),
-#             nn.Linear(rnn_dim, output_dim)
-#         )
-
-#     def forward(self, inp):
-#         spec = self.spec_layer(inp) # (B, F, T)
-#         spec = torch.log(spec+1e-8)
-#         spec = spec.transpose(1,2) # (B, T, F)
-#         spec = self.norm_layer(spec)
-#         spec = spec.unsqueeze(1) # (B, 1, T, F)
-#         print('spec', spec.shape)
-
-#         x = self.cnn(spec)
-#         print('aft cnn', x.shape)
-#         x = self.rescnn_layers(x)
-#         print('aft rescnn', x.shape)
-#         sizes = x.size()
-#         x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # (batch, feature, time)
-#         x = x.transpose(1, 2) # (batch, time, feature)
-#         print('trans', x.shape)
-        
-#         x = self.fully_connected(x)
-#         x = self.birnn_layers(x)
-#         pred = self.classifier(x)
-
-#         output = {"prediction": pred,
-#                   "spectrogram": spec}
-#         return output
