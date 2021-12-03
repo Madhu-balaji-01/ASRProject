@@ -140,38 +140,6 @@ class ASR(pl.LightningModule):
 
     # Vizualizing activations
     def showActivations(self,x):
-      # Logging the input image
-      # self.log_images(x,'InputLayer')
-      # self.logger.experiment.add_image("input",torch.Tensor.cpu(x),self.current_epoch,dataformats="HW")
-      # plt.imshow(torch.Tensor.cpu(x))
-      # plt.show()
-      # plt.clf()
-      # outer=(torch.Tensor.cpu(out).detach())
-      # print(outer.shape)
-      # plt.figure(figsize=(20,5))
-      # b=np.array([]).reshape(0,outer.shape[2])
-      # c=np.array([]).reshape(4*outer.shape[2],0)
-      # # Plotting for layer 1
-      # i=0
-      # j=0
-      # while(i<32):
-      #     img=outer[0][i]
-      #     print(img.shape)
-      #     b=np.concatenate((img,b),axis=0)
-      #     j+=1
-      #     if(j==4):
-      #         c=np.concatenate((c,b),axis=1)
-      #         b=np.array([]).reshape(0,outer.shape[2])
-      #         j=0   
-      #     i+=1
-      # plt.imshow(c)
-      # plt.show()
-      # plt.clf()
-      # self.logger.experiment.add_image("Spec_layer",out,self.current_epoch,dataformats="CHW")
-      # plt.imshow(torch.Tensor.cpu(out.squeeze()))
-      # plt.show()
-      # plt.clf()
-
       # Layer 1
       out = self.model.spec_layer(x)
       out = torch.log(out+1e-8)
@@ -193,10 +161,8 @@ class ASR(pl.LightningModule):
       self.log_activations(out,'Classifier_Layer')
     
     def training_epoch_end(self,outputs):
-      pass
-      # if self.current_epoch==0:
-        # self.showActivations(self.example_input_array)
+      if self.current_epoch==0:
+        self.showActivations(self.example_input_array)
       
-      # self.custom_histogram_adder()
-      # self.logger.experiment.add_graph(self.model,self.example_input_array)
+      self.custom_histogram_adder()
 
