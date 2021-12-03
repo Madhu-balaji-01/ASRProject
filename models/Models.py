@@ -303,35 +303,48 @@ class ResidualCNN(nn.Module):
     """
     def __init__(self, spec_layer, norm_mode, input_dim, output_dim, n_feats = 80, dropout=0.1):
         super(ResidualCNN, self).__init__()
+        self.output_dim = output_dim
+        self.input_dim = input_dim
         self.spec_layer = spec_layer
         self.norm_layer = Normalization(mode=norm_mode)
         
-        self.cnn1 = nn.Conv2d(input_dim, output_dim, kernel_size=3, stride=1, padding=1)
+        self.cnn1 = nn.Conv2d(input_dim, output_dim, (3,3), padding=1)
         self.cnn2 = nn.Conv2d(output_dim, output_dim, kernel_size=3, stride=1, padding=1)
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
-        self.layer_norm1 = CNNLayerNorm(n_feats)
-        self.layer_norm2 = CNNLayerNorm(n_feats)
+        self.layer_norm = nn.LayerNorm(input_dim)
+        # self.layer_norm2 = CNNLayerNorm(n_feats)
 
     def forward(self, x):
+
         spec = self.spec_layer(x) # (B, F, T)
         spec = torch.log(spec+1e-8)
-        # spec = spec.transpose(1,2) # (B, T, F)
+        spec = spec.transpose(1,2) # (B, T, F)
         spec = self.norm_layer(spec)
         x = spec.unsqueeze(1) # (B, 1, T, F)
         print('spec dim', spec.shape )
-
-        residual = x  # (batch, channel, feature, time)
-        x = self.layer_norm1(x)
+        print('inputdim', self.input_dim)
+        print('outputdim', self.output_dim)
+        
+        # x = x.transpose(2,3)
+        residual = x.transpose(2,3)  # (batch, channel, feature, time)
+        print('residual', residual.shape)
+        # x = x.transpose(2,3)
+        x = self.layer_norm(x) # (B, C, F, T)
+        print('layernorm1', x.shape)
         x = F.gelu(x)
         x = self.dropout1(x)
-        x = x.transpose(1,2)
-        x = self.cnn1(x)
+        x = x.transpose(1,2) 
+        x = x.transpose(1,3)
+        x = self.cnn1(x) 
+        print('cnn1', x.shape)
         # x = x.transpose(1,2)
-        # x = self.layer_norm2(x)
+        # x = self.layer_norm(x)
         x = F.gelu(x)
         x = self.dropout2(x)
         x = self.cnn2(x)
+        print('cnn2', x.shape)
+        x = x.transpose(1,2)
         x += residual
 
         output = {"prediction": x,
