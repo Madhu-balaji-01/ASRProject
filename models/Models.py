@@ -301,13 +301,13 @@ class ResidualCNN(nn.Module):
     """Residual CNN inspired by https://arxiv.org/pdf/1603.05027.pdf
         except with layer norm instead of batch norm
     """
-    def __init__(self, input_dim, output_dim, norm_mode, n_feats = 80, dropout=0.1):
+    def __init__(self, spec_layer, norm_mode, input_dim, output_dim, n_feats = 80, dropout=0.1):
         super(ResidualCNN, self).__init__()
         self.spec_layer = spec_layer
         self.norm_layer = Normalization(mode=norm_mode)
         
-        self.cnn1 = nn.Conv2d(input_dim, output_dim, (3,3), padding=1)
-        self.cnn2 = nn.Conv2d(output_dim, output_dim, (3,3), padding=1)
+        self.cnn1 = nn.Conv2d(input_dim, output_dim, kernel_size=3, stride=1, padding=1)
+        self.cnn2 = nn.Conv2d(output_dim, output_dim, kernel_size=3, stride=1, padding=1)
         self.dropout1 = nn.Dropout(dropout)
         self.dropout2 = nn.Dropout(dropout)
         self.layer_norm1 = CNNLayerNorm(n_feats)
@@ -318,19 +318,25 @@ class ResidualCNN(nn.Module):
         spec = torch.log(spec+1e-8)
         # spec = spec.transpose(1,2) # (B, T, F)
         spec = self.norm_layer(spec)
-        spec1 = spec.unsqueeze(1) # (B, 1, T, F)
+        x = spec.unsqueeze(1) # (B, 1, T, F)
+        print('spec dim', spec.shape )
 
-        residual = spec  # (batch, channel, feature, time)
+        residual = x  # (batch, channel, feature, time)
         x = self.layer_norm1(x)
         x = F.gelu(x)
         x = self.dropout1(x)
+        x = x.transpose(1,2)
         x = self.cnn1(x)
-        x = self.layer_norm2(x)
+        # x = x.transpose(1,2)
+        # x = self.layer_norm2(x)
         x = F.gelu(x)
         x = self.dropout2(x)
         x = self.cnn2(x)
         x += residual
-        return x # (batch, channel, feature, time)
+
+        output = {"prediction": x,
+                  "spectrogram": spec}
+        return output # (batch, channel, feature, time)
         
 
 # Models that need fixing.
