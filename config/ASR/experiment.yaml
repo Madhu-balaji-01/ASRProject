@@ -44,4 +44,4 @@ pl:
     
 defaults:    
     - spec_layer: Mel
-    - model: LeNet_5
+    - model: ResCNN

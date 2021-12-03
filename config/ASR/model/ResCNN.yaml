@@ -1,0 +1,5 @@
+type: 'ResidualCNN'
+args:
+    norm_mode: 'imagewise'
+    input_dim: 0 # will be overwritten inside the code
+    output_dim: 0 # will be overwritten inside the code
